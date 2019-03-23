@@ -1,3 +1,4 @@
+# adding function to send MAVLINK command to set the yaw
 """
 This module defines two classes, FlightController and DroneController,
 which are responsible for encapsulating stateful flight controller behaviors
@@ -457,6 +458,7 @@ class DroneController(FlightController):
 
     @synchronized(FlightController._locks["status"])
     @_only_when(FlightStatus.FLYING)
+    
     def elevate(self, altitude, **kwargs):
         """
         Blocking funciton that moves the drone to an altitude, specified relative
@@ -466,7 +468,35 @@ class DroneController(FlightController):
         :param **kwargs: Keyword arguments forwarded to `DroneController.goto`.
         """
         self.move_by((0.0, 0.0), altitude, **kwargs)
-
+        
+    def condition_yaw(self, heading, relative=False):
+    """
+    Send MAV_CMD_CONDITION_YAW message to point vehicle at a specified heading (in degrees).
+    This method sets an absolute heading by default, but you can set the `relative` parameter
+    to `True` to set yaw relative to the current yaw heading.
+    By default the yaw of the vehicle will follow the direction of travel. After setting 
+    the yaw using this function there is no way to return to the default yaw "follow direction 
+    of travel" behaviour (https://github.com/diydrones/ardupilot/issues/2427)
+    For more information see: 
+    http://copter.ardupilot.com/wiki/common-mavlink-mission-command-messages-mav_cmd/#mav_cmd_condition_yaw
+    """
+    if relative:
+        is_relative=1 #yaw relative to direction of travel
+    else:
+        is_relative=0 #yaw is an absolute angle
+    # create the CONDITION_YAW command using command_long_encode()
+    msg = vehicle.message_factory.command_long_encode(
+        0, 0,    # target system, target component
+        mavutil.mavlink.MAV_CMD_CONDITION_YAW, #command
+        0, #confirmation
+        heading,    # param 1, yaw in degrees
+        0,          # param 2, yaw speed deg/s
+        1,          # param 3, direction -1 ccw, 1 cw
+        is_relative, # param 4, relative offset 1, absolute angle 0
+        0, 0, 0)    # param 5 ~ 7 not used
+    # send command to vehicle
+    vehicle.send_mavlink(msg)
+    
     def panic(self):
         """
         Panic a drone. This aborts the flight immediately, causes the drone to
@@ -522,3 +552,5 @@ class DroneController(FlightController):
             raise RicePublicRelationsException(
                 "Flying a drone underground is a poor use of university resources."
                 )
+
+
