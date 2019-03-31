@@ -16,8 +16,7 @@ from threading import Thread
 import dronekit_sitl
 from dronekit import LocationGlobal, VehicleMode, connect, mavutil
 from redis import StrictRedis
-# Added 3/31
-from pymavlink import mavutil 
+
 
 
 from skyengine.batterydata import BatteryData
@@ -471,30 +470,6 @@ class DroneController(FlightController):
         :param **kwargs: Keyword arguments forwarded to `DroneController.goto`.
         """
         self.move_by((0.0, 0.0), altitude, **kwargs)
-        
-    def condition_yaw(self, heading):
-    """
-    Send MAV_CMD_CONDITION_YAW message to point vehicle at a specified heading (in degrees).
-    This method sets an absolute heading by default, but you can set the `relative` parameter
-    to `True` to set yaw relative to the current yaw heading.
-    By default the yaw of the vehicle will follow the direction of travel. After setting 
-    the yaw using this function there is no way to return to the default yaw "follow direction 
-    of travel" behaviour (https://github.com/diydrones/ardupilot/issues/2427)
-    For more information see: 
-    http://copter.ardupilot.com/wiki/common-mavlink-mission-command-messages-mav_cmd/#mav_cmd_condition_yaw
-    """
-    # create the CONDITION_YAW command using command_long_encode()
-    msg = vehicle.message_factory.command_long_encode(
-        0, 0,    # target system, target component
-        mavutil.mavlink.MAV_CMD_CONDITION_YAW, #command
-        0, #confirmation
-        heading,    # param 1, yaw in degrees
-        0,          # param 2, yaw speed deg/s
-        1,          # param 3, direction -1 ccw, 1 cw
-        0, # param 4, relative offset 1, absolute angle 0
-        0, 0, 0)    # param 5 ~ 7 not used
-    # send command to vehicle
-    vehicle.send_mavlink(msg)
     
     def panic(self):
         """
